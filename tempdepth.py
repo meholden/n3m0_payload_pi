@@ -64,13 +64,6 @@ class PhotoStuff:
           self.pmsg = 'no message'
           self.camera = PiCamera()
      
-     def update_n3m0_location(self):
-         ## update the boat location
-         r=requests.post('http://sailbot.holdentechnology.com/postlatlon.php',
-                         data={'b_no':1,'lat':myPhoto.lat,'lon':myPhoto.lon,
-                               'mode':myPhoto.mode,'debug':myPhoto.message})
-         #print(r.text)
-
      def take_photo(self, w,h, filename):
           print('taking photo')
           print filename
@@ -86,19 +79,6 @@ class PhotoStuff:
           self.camera.stop_preview()
           print('photo taken')
 
-     def post_photo(self,filename, newname):
-          print ('posting photo')
-          url = 'http://sailbot.holdentechnology.com/upload.php'
-          #url = 'http://httpbin.org/post'
-          data={'submit':'Submit','name':'fileToUpload','id':'fileToUpload'}
-          files = {'fileToUpload': (newname, open(filename, 'rb'))}
-
-          rr = requests.post(url, data=data, files=files)
-          print rr.text
-
-          print('photo posted')
-
-          
 def get_distance_meters(aLocation1, aLocation2):
     """
     Returns the ground distance in metres between two LocationGlobal objects.
@@ -316,7 +296,6 @@ while not myPhoto.time_to_quit:
                         + str(vehicle.location.global_relative_frame.lon)+") "
                         + str(distance_to_current_waypoint()) + "m to wpt"
                         + str(vehicle.commands.next) )
-     myPhoto.update_n3m0_location()
 
      dtime = time.mktime(time.localtime()) - time.mktime(starttime) # seconds
      ##print "dt is:" + str(dtime)
@@ -342,70 +321,6 @@ while not myPhoto.time_to_quit:
                except:
                     print "Can't do github right now"
 
-##     ## low battery check
-##     if ((vehicle.battery.voltage < 10.0) or (dtime > 6000)):
-##          if (charge_status==0): # freshly dead battery
-##               print " Batt: %s" % vehicle.battery.voltage
-##               print "Requesting charger assistance from DAV"
-##               ## Send /need and get mission ID (repeat if http response not 200).
-##               # start mission, get ID.  Not valid unless response code is 200
-##               r = requests.get(urlstring + '/need',params=pl_key)
-##               if (r.status_code == 200):
-##                    server_msg = r.json()
-##                    mId = server_msg["missionId"]
-##                    print "Mission ID received:", mId
-##                    charge_status = 1 # next one
-##                    twi.sendmsg((time.strftime("%Y-%m-%d %H:%M:%S ")
-##                            +"Requested charger assistance from DAV Network: ID="
-##                              + str(mId)),
-##                              vehicle.location.global_relative_frame.lat,
-##                              vehicle.location.global_relative_frame.lon)
-##                    # otherwise keep trying next iteration
-##                    
-##     if (charge_status==1):
-##          print "Checking charge ready."
-##          # Poll status, when status of the mission ID is ready_to_charge send boat back
-##          pl_keyMis = pl_key.copy()
-##          pl_keyMis.update({"mission_id":mId}) # concatenating here
-##          r = requests.get(urlstring + '/status',params=pl_keyMis)
-##          server_msg = r.json()
-##          if (server_msg["state"] == "ready_to_charge"):
-##               charge_status = 2
-##               vehicle.commands.next = 1 # first waypoint should jump to dock path
-##               print "Charger ready, heading home"
-##               twi.sendmsg((time.strftime("%Y-%m-%d %H:%M:%S ")
-##                            +"DAV Network charger ready, heading home.  Charging will begin when n3m0 in HOLD mode for safety"),
-##                              vehicle.location.global_relative_frame.lat,
-##                              vehicle.location.global_relative_frame.lon)
-##
-##     if (charge_status==2):
-##          # wait until boat is in HOLD mode then send /begin
-##          print "Waiting for HOLD mode"
-##          if (str(vehicle.mode.name).find("HOLD") >= 0):
-##               r = requests.get(urlstring + '/begin_charging',params=pl_keyMis)
-##               server_msg = r.json()
-##               print "Charger state is:", server_msg["state"]
-##               if (server_msg["state"] != "ready_to_charge"):
-##                    charge_status = 3
-##                    twi.sendmsg((time.strftime("%Y-%m-%d %H:%M:%S ")
-##                                 +"Charging..."),
-##                              vehicle.location.global_relative_frame.lat,
-##                              vehicle.location.global_relative_frame.lon)
-##
-##     if (charge_status==3):
-##          r = requests.get(urlstring + '/status',params=pl_keyMis)
-##          server_msg = r.json()
-##          if (server_msg["state"] != "charging_complete"):
-##               print "Still Charging: ", server_msg["state"]
-##          else:
-##               print "Done charging"
-##               vehicle.commands.next=2 # start route over
-##               charge_status = 4
-##               # turn to auto mode here as well later, charge status to 0 if actually charged
-##               twi.sendmsg((time.strftime("%Y-%m-%d %H:%M:%S ")
-##                            + "Charging complete, mission restarted!"),
-##                              vehicle.location.global_relative_frame.lat,
-##                              vehicle.location.global_relative_frame.lon)
 
      # if time to update geojson file, do that
 ##########################################################
