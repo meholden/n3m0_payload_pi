@@ -97,11 +97,12 @@ if __name__ == '__main__':
         old_depth=8
         while (True):
             if (old_speed != nmea.speed.time):
-                print("Speed, depth, " + str(nmea.speed.kt) + ", " + str(nmea.depth.ft)
+                print("SPEED, Depth, temp: " + str(nmea.speed.kt) + ", " + str(nmea.depth.ft)
+                      + ", " + str(nmea.temperature.degC)
                       + " " + str(nmea.speed.time-old_speed) + " " + str(nmea.depth.time-old_depth))
                 old_speed = nmea.speed.time
             if (old_depth != nmea.depth.time):
-                print("speed, Depth, temperature: " + str(nmea.speed.kt) + ", " + str(nmea.depth.ft)
+                print("speed, DEPTH, temp: " + str(nmea.speed.kt) + ", " + str(nmea.depth.ft)
                       + ", " + str(nmea.temperature.degC)
                       + " " + str(nmea.speed.time-old_speed) + " " + str(nmea.depth.time-old_depth))
                 old_depth = nmea.depth.time

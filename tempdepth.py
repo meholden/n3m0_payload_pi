@@ -9,7 +9,8 @@ and also Twitter posts for something to do.
 import sys
 ## account passwords and API tokens come from here
 # stored one directory up for easier repo organization
-sys.path.append("..") # Adds higher directory to python modules path.
+#sys.path.append("..") # Adds higher directory to python modules path.
+sys.path.append("/home/pi/Desktop/dronekitstuff") # Adds higher directory to python modules path.
 from secrets import consumer_key, consumer_secret, access_token, access_token_secret, gitrepo
 
 
@@ -34,8 +35,10 @@ import subprocess
 import makegeojson
 
 # temperature sensor
-import ds18b20temp
+#import ds18b20temp
 
+# Speed/Depth/Temp via nmea 0183
+import nmea_thread
 
 
 # class to hold info for courses, states, etc.
@@ -123,7 +126,14 @@ class manualPhoto:
 class geoJsonClass:
      def __init__(self):
           self.gjlist=[]
-          self.dataLabels = makegeojson.geothing(["Latitude(deg)","Longitude(deg)"],["date-time","Battery (Volts)","Heading(deg)","Speed(m/s)","Temperature(C)"])
+          # (lat,lon), datetime, battery, heading, SOG, Temp, Depth, STW, depth time
+          self.dataLabels = makegeojson.geothing(["Latitude(deg)","Longitude(deg)"],
+                                                 ["date-time","Battery (Volts)",
+                                                  "Heading(deg)","GPS Speed(m/s)",
+                                                  "Temperature(C)",
+                                                  "Depth(ft)",
+                                                  "Boatspeed(kt)",
+                                                  "Depth Timestamp"])
 
 # Callback when location has changed. 'value' is the updated value
 # Mode changing done here.
@@ -133,20 +143,36 @@ def location_callback(self, attr_name, value):
      #print "Location: ", value
      #tempC = ds18b20temp.read_temp()
      #print tempC
-     #myGJ.gjlist.append(makegeojson.geothing([vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.lat],
-     #                    [time.strftime("%Y-%m-%d %H:%M:%S "),vehicle.battery.voltage,vehicle.heading,vehicle.groundspeed,tempC]))
-     
-     if (myPhoto.mode != vehicle.commands.next):
-          # save data as we have reached waypoint
-          # save: position, date-time (string), voltage, heading, speed, temperature
-          tempC = ds18b20temp.read_temp()
-          print tempC
-          myGJ.gjlist.append(makegeojson.geothing([vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.lat],
-                              [time.strftime("%Y-%m-%d %H:%M:%S "),vehicle.battery.voltage,vehicle.heading,vehicle.groundspeed,tempC]))
 
-          # only take one photo per waypoiont
-          myPhoto.mode = vehicle.commands.next
-          myPhoto.Photoing = True
+     try:
+          if (location_callback.lasttime != nmea.depth.time):
+               print("SPEED:"+ str(nmea.speed.kt) + "\tDEPTH:" + str(nmea.depth.ft)
+                 + "\tTEMP:" + str(nmea.temperature.degC)
+                 + "\tTIME:" + str(nmea.speed.time) + " " + str(nmea.depth.time))
+
+               # (lat,lon), datetime, battery, heading, SOG, Temp, Depth, STW, depth time
+               myGJ.gjlist.append(makegeojson.geothing([vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.lat],
+                                   [time.strftime("%Y-%m-%d %H:%M:%S "),
+                                    vehicle.battery.voltage,
+                                    vehicle.heading,
+                                    vehicle.groundspeed,
+                                    nmea.temperature.degC,
+                                    nmea.depth.ft,
+                                    nmea.speed.kt,
+                                    nmea.depth.time]))
+               location_callback.lasttime = nmea.depth.time
+     except Exception as e:
+          location_callback.lasttime = nmea.depth.time
+          print(e)
+               
+
+     
+##     if (myPhoto.mode != vehicle.commands.next):
+##          # we have reached waypoint
+##
+##          # only take one photo per waypoiont
+##          myPhoto.mode = vehicle.commands.next
+##          myPhoto.Photoing = True
 
      ## check  distance to waypoint
      dist = distance_to_current_waypoint()  #myPhoto.get_distance_meters(myPhoto.point1,vehicle.location.global_relative_frame)
@@ -167,7 +193,6 @@ def location_callback(self, attr_name, value):
      # if reached photo point: take photo, return to auto mode.
      if ((dist <= 4.0) and myPhoto.Photoing): # waits until we reach photo point, takes photo
           print "Picture!", dist
-          tempC = ds18b20temp.read_temp()
           # take photo
           myPhoto.take_photo(1920, 1080,'/home/pi/Desktop/cap.jpg')
           myPhoto.twitReady = True # set flag for main loop
@@ -245,6 +270,16 @@ manpho = manualPhoto()
 
 myGJ = geoJsonClass();
 
+try:
+   port = "/dev/ttyUSB0"
+
+   nmea = nmea_thread.nmeaThread(port, 4800)
+   print("Starting up nmea...")
+   nmea.start()
+except:
+     print("Error doing nmea startup")
+     nmea.kill = True
+
 twi = twitterstuff.twitterstuff(consumer_key,consumer_secret,access_token,access_token_secret)
 
 print "Sending initial Twiter post"
@@ -273,13 +308,6 @@ time_to_geojson = 10 # seconds
 ##########################################################
 while not myPhoto.time_to_quit:
      time.sleep(1)
-     #print myPhoto.get_distance_meters(myPhoto.point1,vehicle.location.global_relative_frame)
-     # getting parameters is a little buggy
-     #print "Param: %s" % vehicle.parameters['WP_RADIUS']
-
-     #print "Tx CH:", vehicle.channels
-     #if (vehicle.channels['6'] > 1000):
-     #     print("snap")
      
      if (myPhoto.twitReady):
           myPhoto.twitReady=False
@@ -288,19 +316,11 @@ while not myPhoto.time_to_quit:
                                  vehicle.location.global_relative_frame.lat,
                                  vehicle.location.global_relative_frame.lon)
                                  
-     myPhoto.message = (time.strftime("%Y-%m-%d %H:%M:%S ")
-                        + str(vehicle.mode.name)+ " "
-                        + str(vehicle.battery) + " "
-                        + str(vehicle.gps_0) + " "
-                        + "Pos=("+str(vehicle.location.global_relative_frame.lat)+ ", "
-                        + str(vehicle.location.global_relative_frame.lon)+") "
-                        + str(distance_to_current_waypoint()) + "m to wpt"
-                        + str(vehicle.commands.next) )
-
-     dtime = time.mktime(time.localtime()) - time.mktime(starttime) # seconds
-     ##print "dt is:" + str(dtime)
 
      ## periodically write sensor measurements to geojson file
+     dtime = time.mktime(time.localtime()) - time.mktime(starttime) # seconds
+     ##print "dt is:" + str(dtime)
+          
      if (dtime > time_to_geojson):
           time_to_geojson = time_to_geojson + 120
           if (len(myGJ.gjlist) > 0):
@@ -322,7 +342,6 @@ while not myPhoto.time_to_quit:
                     print "Can't do github right now"
 
 
-     # if time to update geojson file, do that
 ##########################################################
 # End infinite Loop, this runs things when not interrupted by callbacks.
 ##########################################################
@@ -331,6 +350,8 @@ while not myPhoto.time_to_quit:
 vehicle.remove_message_listener('location.global_frame', location_callback)
 #vehicle.remove_message_listener('mode', mode_callback)
 
+# stop nmea thread
+nmea.kill = True
 
 # Close vehicle object before exiting script
 vehicle.close()
