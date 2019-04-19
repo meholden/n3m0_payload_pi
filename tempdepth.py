@@ -146,21 +146,22 @@ def location_callback(self, attr_name, value):
 
      try:
           if (location_callback.lasttime != nmea.depth.time):
-               print("SPEED:"+ str(nmea.speed.kt) + "\tDEPTH:" + str(nmea.depth.ft)
-                 + "\tTEMP:" + str(nmea.temperature.degC)
-                 + "\tTIME:" + str(nmea.speed.time) + " " + str(nmea.depth.time))
+               if (vehicle.channels['5'] > 1500): # switch determines whether measuring or not
+                    print("SPEED:"+ str(nmea.speed.kt) + "\tDEPTH:" + str(nmea.depth.ft)
+                      + "\tTEMP:" + str(nmea.temperature.degC)
+                      + "\tTIME:" + str(nmea.speed.time) + " " + str(nmea.depth.time))
 
-               # (lat,lon), datetime, battery, heading, SOG, Temp, Depth, STW, depth time
-               myGJ.gjlist.append(makegeojson.geothing([vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.lat],
-                                   [time.strftime("%Y-%m-%d %H:%M:%S "),
-                                    vehicle.battery.voltage,
-                                    vehicle.heading,
-                                    vehicle.groundspeed,
-                                    nmea.temperature.degC,
-                                    nmea.depth.ft,
-                                    nmea.speed.kt,
-                                    nmea.depth.time]))
-               location_callback.lasttime = nmea.depth.time
+                    # (lat,lon), datetime, battery, heading, SOG, Temp, Depth, STW, depth time
+                    myGJ.gjlist.append(makegeojson.geothing([vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.lat],
+                                        [time.strftime("%Y-%m-%d %H:%M:%S "),
+                                         vehicle.battery.voltage,
+                                         vehicle.heading,
+                                         vehicle.groundspeed,
+                                         nmea.temperature.degC,
+                                         nmea.depth.ft,
+                                         nmea.speed.kt,
+                                         nmea.depth.time]))
+                    location_callback.lasttime = nmea.depth.time
      except Exception as e:
           location_callback.lasttime = nmea.depth.time
           print(e)
