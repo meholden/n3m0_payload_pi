@@ -34,8 +34,6 @@ import subprocess
 # geojson utilities
 import makegeojson
 
-# temperature sensor
-#import ds18b20temp
 
 # Speed/Depth/Temp via nmea 0183
 import nmea_thread
@@ -126,10 +124,14 @@ class manualPhoto:
 class geoJsonClass:
      def __init__(self):
           self.gjlist=[]
+          self.cog = 0
+          self.sog = 0
           # (lat,lon), datetime, battery, heading, SOG, Temp, Depth, STW, depth time
           self.dataLabels = makegeojson.geothing(["Latitude(deg)","Longitude(deg)"],
                                                  ["date-time","Battery (Volts)",
-                                                  "Heading(deg)","GPS Speed(m/s)",
+                                                  "Heading (deg)",
+                                                  "GPS Heading(deg)",
+                                                  "GPS Speed(m/s)",
                                                   "Temperature(C)",
                                                   "Depth(ft)",
                                                   "Boatspeed(kt)",
@@ -156,7 +158,8 @@ def location_callback(self, attr_name, value):
                                         [time.strftime("%Y-%m-%d %H:%M:%S "),
                                          vehicle.battery.voltage,
                                          vehicle.heading,
-                                         vehicle.groundspeed,
+                                         myGJ.cog,
+                                         myGJ.sog,
                                          nmea.temperature.degC,
                                          nmea.depth.ft,
                                          nmea.speed.kt,
@@ -181,19 +184,15 @@ def location_callback(self, attr_name, value):
 
      ## toggle switch on RC for different things...
      if (vehicle.channels['6'] > 1500) and (manpho.lastch6 < 1500):
-          dist = 0;  # fool test for "at waypoint"
+          #dist = 0;  # fool test for "at waypoint"
           myPhoto.Photoing=True
           print("snap")
-          tempC = ds18b20temp.read_temp()
-          myGJ.gjlist.append(makegeojson.geothing([vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.lat],
-                              [time.strftime("%Y-%m-%d %H:%M:%S "),vehicle.battery.voltage,vehicle.heading,vehicle.groundspeed,tempC]))
 
      # save switch last position.
      manpho.lastch6 = vehicle.channels['6']
      
-     # if reached photo point: take photo, return to auto mode.
-     if ((dist <= 4.0) and myPhoto.Photoing): # waits until we reach photo point, takes photo
-          print "Picture!", dist
+     if (myPhoto.Photoing): #  takes photo
+          print "Picture!"
           # take photo
           myPhoto.take_photo(1920, 1080,'/home/pi/Desktop/cap.jpg')
           myPhoto.twitReady = True # set flag for main loop
@@ -203,7 +202,7 @@ def location_callback(self, attr_name, value):
           myPhoto.lon = vehicle.location.global_relative_frame.lon
           myPhoto.message = ("Autonomous tweet in real time from a robot boat underway! Photo from wpt " + str(vehicle.commands.next)
                              + " on:" + time.strftime("%Y-%m-%d %H:%M:%S ")
-                        + str(tempC) + "C "
+                        + str(nmea.temperature.degC) + "C "
                         + "Autopilot mode:" + str(vehicle.mode.name)+ " Battery: "
                         + str(vehicle.battery.voltage) + "V "
                         + str(vehicle.gps_0) + " "
@@ -211,6 +210,13 @@ def location_callback(self, attr_name, value):
                         + str(vehicle.location.global_relative_frame.lon)+") "
                         )
 
+# Callback when GPS mavlink message received from autopilot
+def GPS_callback(self, name, msg):
+     #print("MSG is:")
+     #print(msg.cog/100.0) # cdeg/100 = deg
+     #print(msg.vel/100.0) # cm/sec/100 = m/s
+     myGJ.cog = msg.cog/100.0 # deg
+     myGJ.sog = msg.vel/100.0 # m/s
  
 ###########################
 # Main Code starts here
@@ -257,6 +263,7 @@ try:
      print " Is Armable?: %s" % vehicle.is_armable
      print " System status: %s" % vehicle.system_status.state
      print " Mode: %s" % vehicle.mode.name    # settable
+     print (dir(vehicle))
 
 except:
      print "Error waiting for vehicle"
@@ -296,6 +303,9 @@ start_str = time.strftime("%Y%m%d_%H%M%S")
 # Add a callback `location_callback` for the `global_frame` attribute.
 vehicle.add_attribute_listener('location.global_frame', location_callback)
 ##vehicle.add_attribute_listener('mode', mode_callback)
+
+# Add a callback for the GPS_RAW_INT mavlink message
+vehicle.add_message_listener('GPS_RAW_INT', GPS_callback)
 
 charge_status = 0 #
 time_to_geojson = 10 # seconds
