@@ -38,6 +38,9 @@ import makegeojson
 # Speed/Depth/Temp via nmea 0183
 import nmea_thread
 
+# Access online tide data for MLLW reference
+import datetime
+import gettides
 
 # class to hold info for courses, states, etc.
 class PhotoStuff:
@@ -135,7 +138,8 @@ class geoJsonClass:
                                                   "Temperature(C)",
                                                   "Depth(ft)",
                                                   "Boatspeed(kt)",
-                                                  "Depth Timestamp"])
+                                                  "Depth Timestamp",
+                                                  "Tide station" + str(tides.station) + " (m) "])
 
 # Callback when location has changed. 'value' is the updated value
 # Mode changing done here.
@@ -153,6 +157,10 @@ def location_callback(self, attr_name, value):
                       + "\tTEMP:" + str(nmea.temperature.degC)
                       + "\tTIME:" + str(nmea.speed.time) + " " + str(nmea.depth.time))
 
+                    x = datetime.datetime.utcnow()
+
+                    tide = tides.lookup(x)
+
                     # (lat,lon), datetime, battery, heading, SOG, Temp, Depth, STW, depth time
                     myGJ.gjlist.append(makegeojson.geothing([vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.lat],
                                         [time.strftime("%Y-%m-%d %H:%M:%S "),
@@ -163,7 +171,8 @@ def location_callback(self, attr_name, value):
                                          nmea.temperature.degC,
                                          nmea.depth.ft,
                                          nmea.speed.kt,
-                                         nmea.depth.time]))
+                                         nmea.depth.time,
+                                         tide]))
                     location_callback.lasttime = nmea.depth.time
      except Exception as e:
           location_callback.lasttime = nmea.depth.time
@@ -275,6 +284,9 @@ starttime = time.localtime()
 myPhoto = PhotoStuff()
 
 manpho = manualPhoto()
+
+station = 9415143
+tides = gettides.tidesfromNOAA(station)
 
 myGJ = geoJsonClass();
 
