@@ -285,7 +285,9 @@ myPhoto = PhotoStuff()
 
 manpho = manualPhoto()
 
-station = 9415143
+##station = 9415143 # crockett
+station = 9414863 # richmond pier
+
 tides = gettides.tidesfromNOAA(station)
 
 myGJ = geoJsonClass();

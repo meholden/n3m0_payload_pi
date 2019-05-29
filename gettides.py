@@ -22,6 +22,7 @@ class tidesfromNOAA(object):
 
         response = urllib.urlopen(url)
         data = json.loads(response.read())
+        print data
         self.tidedata = data['predictions'] # a list
         print ("Got 24 hours of tides for " + self.tidedata[0]["t"])
         
@@ -43,17 +44,20 @@ class tidesfromNOAA(object):
         # interpolate
         tide = lowtide + (hitide - lowtide)/(upptime - lowtime).total_seconds()*(x - lowtime).total_seconds()
 
-##        print lowtime, lowtide
-##        print x, tide
-##        print upptime,hitide
+      #  print lowtime, lowtide
+      #  print x, tide
+      #  print upptime,hitide
         return tide
 
 if __name__ == "__main__":
-    station = 9415143
+    ##station = 9415143 # carquinez strait
+    station = 9414863 # richmond pier
     tides = tidesfromNOAA(station)
     # note that this must be within 24hr of the initialization
     x = datetime.datetime.utcnow()
 
     tide = tides.lookup(x)
 
-    print x, tide
+    print (str(x) + " " + str(tide))
+  
+    
