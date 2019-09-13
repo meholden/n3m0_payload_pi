@@ -238,7 +238,8 @@ print("\nConnecting to vehicle")
 #vehicle = connect("/dev/ttyUSB0", baud=57600) # telemetry usb
 #vehicle = connect("/dev/ttyS0", baud=57600) # telemetry usb
 try:
-     vehicle = connect("tcp:0.0.0.0:14442",wait_ready=True) # telemetry usb
+     #vehicle = connect("tcp:0.0.0.0:14442",wait_ready=True) # telemetry usb
+     vehicle = connect("/dev/ttyS0",baud=57600,wait_ready=False) # telemetry usb
 except:
      print ("you must start mavproxy first...")
      # this code does not work- start using command below yourself
@@ -285,8 +286,8 @@ myPhoto = PhotoStuff()
 
 manpho = manualPhoto()
 
-##station = 9415143 # crockett
-station = 9414863 # richmond pier
+station = 9415143 # crockett
+##station = 9414863 # richmond pier
 
 tides = gettides.tidesfromNOAA(station)
 
@@ -344,7 +345,7 @@ while not myPhoto.time_to_quit:
 
      ## periodically write sensor measurements to geojson file
      dtime = time.mktime(time.localtime()) - time.mktime(starttime) # seconds
-     ##print "dt is:" + str(dtime)
+     ##print "dt is:" + str(dtime) + " mode= " + str(vehicle.mode)
           
      if (dtime > time_to_geojson):
           time_to_geojson = time_to_geojson + 120
