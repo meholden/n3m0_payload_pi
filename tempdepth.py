@@ -66,7 +66,11 @@ class PhotoStuff:
           self.plon=0
           self.pmode='none'
           self.pmsg = 'no message'
-          self.camera = PiCamera()
+          try:
+              self.camera = PiCamera()
+          except:
+              self.camera=False
+              print "No camera"
      
      def take_photo(self, w,h, filename):
           print('taking photo')
@@ -149,17 +153,16 @@ def location_callback(self, attr_name, value):
      #print "Location: ", value
      #tempC = ds18b20temp.read_temp()
      #print tempC
+     #print "ch5: ", vehicle.channels
 
      try:
-          if (location_callback.lasttime != nmea.depth.time):
-               if (vehicle.channels['5'] > 1500): # switch determines whether measuring or not
-                    print("SPEED:"+ str(nmea.speed.kt) + "\tDEPTH:" + str(nmea.depth.ft)
-                      + "\tTEMP:" + str(nmea.temperature.degC)
-                      + "\tTIME:" + str(nmea.speed.time) + " " + str(nmea.depth.time))
+          if (location_callback.lasttime != nmea.depth.time): # new data from Depth Sensor
+               location_callback.lasttime = nmea.depth.time
 
-                    x = datetime.datetime.utcnow()
-
-                    tide = tides.lookup(x)
+               x = datetime.datetime.utcnow()
+               tide = tides.lookup(x)
+               
+               if (vehicle.channels['5'] > 1500): # switch determines whether logging or not
 
                     # (lat,lon), datetime, battery, heading, SOG, Temp, Depth, STW, depth time
                     myGJ.gjlist.append(makegeojson.geothing([vehicle.location.global_relative_frame.lon,vehicle.location.global_relative_frame.lat],
@@ -173,7 +176,16 @@ def location_callback(self, attr_name, value):
                                          nmea.speed.kt,
                                          nmea.depth.time,
                                          tide]))
-                    location_callback.lasttime = nmea.depth.time
+                    print("Logged DEPTH:" + str(nmea.depth.ft)
+                    + "\tTIDE:" + str('%.2f' % tide)
+                    + "\tTEMP:" + str(nmea.temperature.degC)
+                    + "\tTIME:" + str(nmea.depth.time))
+               else:
+                    print("No Log DEPTH:" + str(nmea.depth.ft)
+                   + "\tTIDE:" + str('%.2f' % tide)
+                    + "\tTEMP:" + str(nmea.temperature.degC)
+                    + "\tTIME:" + str(nmea.depth.time))
+ 
      except Exception as e:
           location_callback.lasttime = nmea.depth.time
           print(e)
@@ -194,7 +206,7 @@ def location_callback(self, attr_name, value):
      ## toggle switch on RC for different things...
      if (vehicle.channels['6'] > 1500) and (manpho.lastch6 < 1500):
           #dist = 0;  # fool test for "at waypoint"
-          myPhoto.Photoing=True
+          #myPhoto.Photoing=True
           print("snap")
 
      # save switch last position.
@@ -238,8 +250,8 @@ print("\nConnecting to vehicle")
 #vehicle = connect("/dev/ttyUSB0", baud=57600) # telemetry usb
 #vehicle = connect("/dev/ttyS0", baud=57600) # telemetry usb
 try:
-     #vehicle = connect("tcp:0.0.0.0:14442",wait_ready=True) # telemetry usb
-     vehicle = connect("/dev/ttyS0",baud=57600,wait_ready=False) # telemetry usb
+     vehicle = connect("tcp:0.0.0.0:14442",wait_ready=True) # telemetry usb
+     ##vehicle = connect("/dev/ttyS0",baud=57600,wait_ready=False) # telemetry usb
 except:
      print ("you must start mavproxy first...")
      # this code does not work- start using command below yourself
@@ -273,12 +285,13 @@ try:
      print " Is Armable?: %s" % vehicle.is_armable
      print " System status: %s" % vehicle.system_status.state
      print " Mode: %s" % vehicle.mode.name    # settable
-     print (dir(vehicle))
+     #print (dir(vehicle))
 
 except:
      print "Error waiting for vehicle"
 
 # initialize things
+
 
 starttime = time.localtime()
 
@@ -305,10 +318,10 @@ except:
 
 twi = twitterstuff.twitterstuff(consumer_key,consumer_secret,access_token,access_token_secret)
 
-print "Sending initial Twiter post"
-twi.sendmsg("n3m0 started up, let's go have fun! " + time.strftime("%Y-%m-%d %H:%M:%S "),
-               vehicle.location.global_relative_frame.lat,
-               vehicle.location.global_relative_frame.lon)
+##print "Sending initial Twiter post"
+##twi.sendmsg("n3m0 started up, let's go have fun! " + time.strftime("%Y-%m-%d %H:%M:%S "),
+##               vehicle.location.global_relative_frame.lat,
+##               vehicle.location.global_relative_frame.lon)
 
 ## start time used for github updates etc.
 start_str = time.strftime("%Y%m%d_%H%M%S")
@@ -345,7 +358,7 @@ while not myPhoto.time_to_quit:
 
      ## periodically write sensor measurements to geojson file
      dtime = time.mktime(time.localtime()) - time.mktime(starttime) # seconds
-     ##print "dt is:" + str(dtime) + " mode= " + str(vehicle.mode)
+     #print "dt is:" + str(dtime) + " mode= " + str(vehicle.mode)
           
      if (dtime > time_to_geojson):
           time_to_geojson = time_to_geojson + 120

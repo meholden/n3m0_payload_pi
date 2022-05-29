@@ -22,7 +22,7 @@ class tidesfromNOAA(object):
 
         response = urllib.urlopen(url)
         data = json.loads(response.read())
-        print data
+        #print data
         self.tidedata = data['predictions'] # a list
         print ("Got 24 hours of tides for " + self.tidedata[0]["t"])
         
