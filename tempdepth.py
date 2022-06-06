@@ -179,13 +179,15 @@ def location_callback(self, attr_name, value):
                     print("Logged DEPTH:" + str(nmea.depth.ft)
                     + "\tTIDE:" + str('%.2f' % tide)
                     + "\tTEMP:" + str(nmea.temperature.degC)
-                    + "\tTIME:" + str(nmea.depth.time))
+                  #  + "\tTIME:" + str(nmea.depth.time)
+                    + "\tLOG:" + str(time_to_geojson-dtime))
                else:
                     print("No Log DEPTH:" + str(nmea.depth.ft)
-                   + "\tTIDE:" + str('%.2f' % tide)
+                    + "\tTIDE:" + str('%.2f' % tide)
                     + "\tTEMP:" + str(nmea.temperature.degC)
-                    + "\tTIME:" + str(nmea.depth.time))
- 
+                  #  + "\tTIME:" + str(nmea.depth.time)
+                    + "\tLOG:" + str(time_to_geojson-dtime))
+
      except Exception as e:
           location_callback.lasttime = nmea.depth.time
           print(e)
@@ -250,8 +252,8 @@ print("\nConnecting to vehicle")
 #vehicle = connect("/dev/ttyUSB0", baud=57600) # telemetry usb
 #vehicle = connect("/dev/ttyS0", baud=57600) # telemetry usb
 try:
-     vehicle = connect("tcp:0.0.0.0:14442",wait_ready=True) # telemetry usb
-     ##vehicle = connect("/dev/ttyS0",baud=57600,wait_ready=False) # telemetry usb
+     ##vehicle = connect("tcp:0.0.0.0:14442",wait_ready=True) # telemetry usb
+     vehicle = connect("/dev/ttyS0",baud=57600,wait_ready=False) # telemetry usb
 except:
      print ("you must start mavproxy first...")
      # this code does not work- start using command below yourself
