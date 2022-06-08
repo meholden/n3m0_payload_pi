@@ -301,10 +301,23 @@ myPhoto = PhotoStuff()
 
 manpho = manualPhoto()
 
-station = 9415143 # crockett
-##station = 9414863 # richmond pier
+if (vehicle.gps_0.fix_type >= 3):
+     print("fix = " + str(vehicle.gps_0.fix_type) + " Lat=" + str(vehicle.location.global_relative_frame.lat) + " Lon=" + str(vehicle.location.global_relative_frame.lon))
 
-tides = gettides.tidesfromNOAA(station)
+     
+     tides = gettides.tidesfromNOAA()
+     stat = tides.nearestStation(vehicle.location.global_relative_frame.lat,vehicle.location.global_relative_frame.lon)
+     #stat = tides.nearestStation(37.99730,-122.09111)
+     #tides.setStatName(9415143,"carquinez") # hack here to directly specify station number
+
+     # note that this must be within 24hr of the initialization
+     x = datetime.datetime.utcnow()
+
+     tide = tides.lookup(x)
+
+     print ("Right now at " + str(x) + " tide is " + str(tide) + "  meters")
+else:
+     print ("No GPS, no tides!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 myGJ = geoJsonClass();
 
